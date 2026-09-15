@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AccountType {
+  CHECKING
+  CREDIT_CARD
+  CASH
+}
+
+enum CategoryKind {
+  EXPENSE
+  INCOME
+  TRANSFER
+}
+
+enum TransactionSource {
+  MANUAL
+  IMPORT
+  RECEIPT
+}
+
+enum CategorizedBy {
+  RULE
+  CNPJ
+  AI
+  MANUAL
+}
+
+model Account {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  type         AccountType
+  createdAt    DateTime      @default(now())
+  transactions Transaction[]
+  recurrings   Recurring[]
+  importBatches ImportBatch[]
+}
+
+model Category {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  kind         CategoryKind
+  budgetCents  Int?
+  color        String
+  createdAt    DateTime      @default(now())
+  transactions Transaction[]
+  rules        Rule[]
+  cnaeMappings CnaeMapping[]
+  recurrings   Recurring[]
+}
+
+model Transaction {
+  id            String            @id @default(cuid())
+  date          DateTime          @db.Date
+  // Signed integer cents: negative = money out, positive = money in.
+  amountCents   Int
+  description   String
+  normalized    String
+  source        TransactionSource
+  categorizedBy CategorizedBy?
+  importHash    String?           @unique
+  externalId    String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  accountId     String
+  account       Account           @relation(fields: [accountId], references: [id])
+  categoryId    String?
+  category      Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  importBatchId String?
+  importBatch   ImportBatch?      @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  recurringId   String?
+  recurring     Recurring?        @relation(fields: [recurringId], references: [id], onDelete: SetNull)
+  receipt       Receipt?
+
+  @@index([date])
+  @@index([accountId, date])
+  @@index([categoryId])
+  @@index([importBatchId])
+}
+
+model Rule {
+  id         String   @id @default(cuid())
+  // Matched with "contains" against Transaction.normalized.
+  pattern    String   @unique
+  hits       Int      @default(0)
+  createdAt  DateTime @default(now())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
+
+model CnpjCache {
+  cnpj            String   @id
+  found           Boolean
+  razaoSocial     String?
+  cnaeCode        String?
+  cnaeDescription String?
+  fetchedAt       DateTime @default(now())
+}
+
+model CnaeMapping {
+  id         String   @id @default(cuid())
+  // 2 to 4 leading digits of a CNAE code; the longest matching prefix wins.
+  cnaePrefix String   @unique
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
+
+model Recurring {
+  id           String        @id @default(cuid())
+  description  String
+  amountCents  Int
+  dayOfMonth   Int
+  pattern      String
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  categoryId   String
+  category     Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  accountId    String
+  account      Account       @relation(fields: [accountId], references: [id])
+  transactions Transaction[]
+}
+
+model Receipt {
+  id            String      @id @default(cuid())
+  image         Bytes
+  mime          String
+  createdAt     DateTime    @default(now())
+  transactionId String      @unique
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+}
+
+model ImportBatch {
+  id             String        @id @default(cuid())
+  fileName       String
+  rowCount       Int
+  importedCount  Int
+  duplicateCount Int
+  createdAt      DateTime      @default(now())
+  accountId      String
+  account        Account       @relation(fields: [accountId], references: [id])
+  transactions   Transaction[]
+}
+
+model CsvMapping {
+  headerSignature String   @id
+  mapping         Json
+  createdAt       DateTime @default(now())
+}
+
+model AiCategorization {
+  normalized String   @id
+  categoryId String?
+  model      String
+  createdAt  DateTime @default(now())
+}
