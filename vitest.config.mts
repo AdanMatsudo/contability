@@ -19,6 +19,7 @@ export default defineConfig({
           environment: "node",
           include: ["tests/integration/**/*.int.test.ts"],
           setupFiles: ["tests/integration/setup.ts"],
+          globalSetup: ["tests/integration/global-setup.ts"],
           fileParallelism: false,
         },
       },
