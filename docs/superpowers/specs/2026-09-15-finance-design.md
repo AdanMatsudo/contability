@@ -1,6 +1,6 @@
 # Finance — desenho aprovado (2026-09-15)
 
-App pessoal de finanças em BRL, um usuário, custo recorrente zero. Este documento fixa o que foi decidido antes do código. O plano de execução por fases está em `~/.claude/plans/certo-gostei-de-como-velvety-corbato.md`; o protótipo aprovado está em https://claude.ai/artifact/WHACscpBcobvqDx6kNdYKG (versão 3).
+App pessoal de finanças em BRL, um usuário, custo recorrente zero. Este documento fixa o que foi decidido antes do código. O plano de execução por fases está em `docs/superpowers/plans/2026-09-15-finance-plan.md` e o andamento em `docs/STATUS.md`; o protótipo aprovado está em https://claude.ai/artifact/WHACscpBcobvqDx6kNdYKG (versão 3).
 
 ## Decisões
 

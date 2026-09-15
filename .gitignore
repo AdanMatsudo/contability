@@ -45,3 +45,6 @@ next-env.d.ts
 # prisma
 /src/generated/
 !.env.example
+
+# local tooling
+/.serena/
