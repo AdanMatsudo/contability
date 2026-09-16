@@ -33,6 +33,17 @@ const RULES: { pattern: string; category: string }[] = [
   { pattern: "PAGAMENTO DE FATURA", category: "Transferência" },
   { pattern: "PAGAMENTO RECEBIDO", category: "Transferência" },
   { pattern: "RENDIMENTO", category: "Rendimentos" },
+  // Card-statement vocabulary seen in a real Nubank export on 2026-09-16.
+  { pattern: "IFD", category: "Alimentação fora" },
+  { pattern: "COMBUSTIVE", category: "Transporte" },
+  { pattern: "POSTO", category: "Transporte" },
+  { pattern: "AMAZON", category: "Compras" },
+  { pattern: "NETFLIX", category: "Assinaturas" },
+  { pattern: "SPOTIFY", category: "Assinaturas" },
+  { pattern: "DROGARIA", category: "Saúde" },
+  { pattern: "FARMACIA", category: "Saúde" },
+  { pattern: "SUPERMERCADO", category: "Mercado" },
+  { pattern: "MERCADO", category: "Mercado" },
 ];
 
 // CNAE prefixes (2 to 4 digits); the longest matching prefix wins.

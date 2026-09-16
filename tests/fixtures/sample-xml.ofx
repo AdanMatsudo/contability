@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?OFX OFXHEADER="200" VERSION="211" SECURITY="NONE" OLDFILEUID="NONE" NEWFILEUID="NONE"?>
+<OFX>
+  <BANKMSGSRSV1>
+    <STMTTRNRS>
+      <STMTRS>
+        <BANKTRANLIST>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20260903120000[-3:BRT]</DTPOSTED>
+            <TRNAMT>-45.00</TRNAMT>
+            <FITID>2026090300001</FITID>
+            <NAME>DROGARIA SAO PAULO</NAME>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20260905</DTPOSTED>
+            <TRNAMT>1200.50</TRNAMT>
+            <FITID>2026090500002</FITID>
+            <MEMO>RENDIMENTO POUPANCA</MEMO>
+          </STMTTRN>
+        </BANKTRANLIST>
+      </STMTRS>
+    </STMTTRNRS>
+  </BANKMSGSRSV1>
+</OFX>

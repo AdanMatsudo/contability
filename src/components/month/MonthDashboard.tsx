@@ -138,7 +138,13 @@ export function MonthDashboard({ summary, history, insight, transactions, catego
 
         <Card title="Onde o dinheiro foi" value={null}>
           <p className="text-sm leading-relaxed">{insight}</p>
-          <StackedBar slices={stack} onSelect={toggleCategory} selectedKey={categoryKey} />
+          <StackedBar
+            slices={stack}
+            onSelect={toggleCategory}
+            selectedKey={categoryKey}
+            formatValue={formatBRL}
+            emptyText="Nenhuma saída neste mês."
+          />
         </Card>
       </div>
 
