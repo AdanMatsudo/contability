@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { Category, CategoryKind } from "@/domain/types";
 import type { ActionResult } from "@/lib/action-result";
 import { formatBRL } from "@/lib/money";
 import { CATEGORY_PALETTE } from "@/services/categories/category.service";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { Field, inputClass } from "@/components/ui/Field";
 
 const KIND_LABEL: Record<CategoryKind, string> = {
@@ -21,24 +22,45 @@ export interface CategoryFormValues {
 }
 
 interface CategoryFormProps {
+  formId: string;
   initial?: Category;
+  initialName?: string;
   onSubmit: (values: CategoryFormValues) => Promise<ActionResult<Category>>;
   onDone: () => void;
-  submitLabel: string;
+  onChange?: (values: CategoryFormValues) => void;
+  onPendingChange?: (pending: boolean) => void;
 }
 
 function budgetToInput(cents: number | null): string {
   return cents === null ? "" : formatBRL(cents).replace(/^R\$\s?/, "");
 }
 
-export function CategoryForm({ initial, onSubmit, onDone, submitLabel }: CategoryFormProps) {
-  const [name, setName] = useState(initial?.name ?? "");
+// Lives inside the SidePanel; the submit button sits in the panel footer and
+// targets this form by id, so the footer stays fixed while the form scrolls.
+export function CategoryForm({
+  formId,
+  initial,
+  initialName,
+  onSubmit,
+  onDone,
+  onChange,
+  onPendingChange,
+}: CategoryFormProps) {
+  const [name, setName] = useState(initial?.name ?? initialName ?? "");
   const [kind, setKind] = useState<CategoryKind>(initial?.kind ?? "EXPENSE");
   const [budget, setBudget] = useState(budgetToInput(initial?.budgetCents ?? null));
   const [color, setColor] = useState<string | undefined>(initial?.color);
   const [errors, setErrors] = useState<Record<string, string[] | undefined>>({});
-  const [error, setError] = useState<string | undefined>();
+  const [error, setError] = useState<{ message: string; code: string } | undefined>();
   const [pending, start] = useTransition();
+
+  useEffect(() => {
+    onChange?.({ name, kind, budget, color });
+  }, [name, kind, budget, color, onChange]);
+
+  useEffect(() => {
+    onPendingChange?.(pending);
+  }, [pending, onPendingChange]);
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -49,36 +71,43 @@ export function CategoryForm({ initial, onSubmit, onDone, submitLabel }: Categor
         return;
       }
       setErrors(result.fieldErrors ?? {});
-      setError(result.error);
+      const hasFieldErrors = result.fieldErrors && Object.keys(result.fieldErrors).length > 0;
+      setError(hasFieldErrors ? undefined : { message: result.error, code: result.code });
     });
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4 rounded-[20px] bg-surface p-5 border border-border">
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_160px_160px] gap-3">
-        <Field label="Nome" error={errors.name?.[0]}>
-          <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-        </Field>
-        <Field label="Tipo">
-          <select className={inputClass} value={kind} onChange={(e) => setKind(e.target.value as CategoryKind)}>
-            {(Object.keys(KIND_LABEL) as CategoryKind[]).map((k) => (
-              <option key={k} value={k}>
-                {KIND_LABEL[k]}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Orçamento mensal" error={errors.budget?.[0]}>
-          <input
-            className={inputClass}
-            value={budget}
-            onChange={(e) => setBudget(e.target.value)}
-            placeholder="sem limite"
-            inputMode="decimal"
-            disabled={kind !== "EXPENSE"}
-          />
-        </Field>
-      </div>
+    <form id={formId} onSubmit={submit} className="flex flex-col gap-5">
+      <Field label="Nome" error={errors.name?.[0]}>
+        <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+      </Field>
+      <Field label="Tipo">
+        <div className="flex gap-1 p-1 rounded-xl bg-background">
+          {(Object.keys(KIND_LABEL) as CategoryKind[]).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setKind(k)}
+              className={
+                "flex-1 h-8 rounded-lg text-xs font-medium transition-colors " +
+                (kind === k ? "bg-surface text-foreground shadow-[0_1px_2px_rgba(17,17,16,0.08)]" : "text-muted")
+              }
+            >
+              {KIND_LABEL[k]}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <Field label="Orçamento mensal" error={errors.budget?.[0]}>
+        <input
+          className={inputClass}
+          value={budget}
+          onChange={(e) => setBudget(e.target.value)}
+          placeholder={kind === "EXPENSE" ? "sem limite" : "só pra saídas"}
+          inputMode="decimal"
+          disabled={kind !== "EXPENSE"}
+        />
+      </Field>
       <Field label="Cor">
         <div className="flex flex-wrap gap-2">
           {CATEGORY_PALETTE.map((c) => (
@@ -86,35 +115,19 @@ export function CategoryForm({ initial, onSubmit, onDone, submitLabel }: Categor
               key={c}
               type="button"
               aria-label={c}
+              aria-pressed={color === c}
               onClick={() => setColor(c)}
               className={
-                "w-7 h-7 rounded-full border-2 " + (color === c ? "border-foreground" : "border-transparent")
+                "w-8 h-8 rounded-full border-2 transition-transform " +
+                (color === c ? "border-foreground scale-110" : "border-transparent hover:scale-105")
               }
               style={{ background: c }}
             />
           ))}
-          {!initial && (
-            <span className="self-center text-xs text-muted">{color ? "" : "sem escolher, eu pego uma cor livre"}</span>
-          )}
         </div>
+        {!initial && !color && <span className="text-xs text-muted">Sem escolher, eu pego uma cor livre.</span>}
       </Field>
-      {error && <p className="text-sm text-[#a14d13]">{error}</p>}
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onDone}
-          className="h-10 px-4 rounded-xl border border-border bg-surface text-[13px] font-medium"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={pending}
-          className="h-10 px-4 rounded-xl bg-foreground text-white text-[13px] font-medium disabled:opacity-40"
-        >
-          {pending ? "Salvando…" : submitLabel}
-        </button>
-      </div>
+      {error && <ErrorNotice message={error.message} code={error.code} />}
     </form>
   );
 }

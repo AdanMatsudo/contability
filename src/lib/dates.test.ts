@@ -8,6 +8,7 @@ import {
   monthRange,
   parseDmy,
   todayIso,
+  daysAgoIso,
 } from "./dates";
 
 describe("monthRange", () => {
@@ -73,5 +74,15 @@ describe("monthOf / clampDay", () => {
   it("clamps a day-of-month to the month length", () => {
     expect(clampDay("2026-02", 31)).toBe("2026-02-28");
     expect(clampDay("2026-09", 10)).toBe("2026-09-10");
+  });
+});
+
+describe("daysAgoIso", () => {
+  it("subtracts whole days on the Sao Paulo calendar", () => {
+    // 2026-09-15T02:00Z is still 2026-09-14 in Sao Paulo.
+    const now = new Date("2026-09-15T02:00:00Z");
+    expect(daysAgoIso(0, now)).toBe("2026-09-14");
+    expect(daysAgoIso(90, now)).toBe("2026-06-16");
+    expect(daysAgoIso(14, now)).toBe("2026-08-31");
   });
 });

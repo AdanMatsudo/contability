@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { Category, CategoryKind } from "@/domain/types";
+import type { IsoDate } from "@/lib/dates";
 
 export interface CategoryInput {
   name: string;
@@ -39,5 +40,19 @@ export const categoryRepo = {
 
   async countTransactions(id: string): Promise<number> {
     return db.transaction.count({ where: { categoryId: id } });
+  },
+
+  // Transactions per category from `since` (inclusive). Feeds the "most used" sort.
+  async usageCounts(since: IsoDate): Promise<Record<string, number>> {
+    const rows = await db.transaction.groupBy({
+      by: ["categoryId"],
+      where: { categoryId: { not: null }, date: { gte: new Date(`${since}T00:00:00Z`) } },
+      _count: { _all: true },
+    });
+    const counts: Record<string, number> = {};
+    for (const row of rows) {
+      if (row.categoryId) counts[row.categoryId] = row._count._all;
+    }
+    return counts;
   },
 };

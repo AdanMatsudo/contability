@@ -58,3 +58,11 @@ export function clampDay(ym: YearMonth, day: number): IsoDate {
   const clamped = Math.min(Math.max(1, day), daysInMonth(ym));
   return `${ym}-${pad2(clamped)}`;
 }
+
+// Calendar days back from "today" in Sao Paulo, e.g. the window for usage counts.
+export function daysAgoIso(days: number, now: Date = new Date(), timeZone: string = SAO_PAULO): IsoDate {
+  const today = todayIso(now, timeZone);
+  const [y, m, d] = today.split("-").map(Number);
+  const shifted = new Date(Date.UTC(y, m - 1, d - days));
+  return `${shifted.getUTCFullYear()}-${pad2(shifted.getUTCMonth() + 1)}-${pad2(shifted.getUTCDate())}`;
+}
