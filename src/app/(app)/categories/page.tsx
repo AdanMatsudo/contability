@@ -3,11 +3,15 @@ import { requireUser } from "@/lib/auth-guard";
 import { daysAgoIso } from "@/lib/dates";
 import { accountRepo } from "@/repositories/account.repo";
 import { categoryRepo } from "@/repositories/category.repo";
+import { cnaeRepo } from "@/repositories/cnpj.repo";
 import { parseCategoryFilter, type CategoryWithUsage } from "@/services/categories/category-filter";
 import { AccountsManager } from "@/components/categories/AccountsManager";
 import { CategoriesManager } from "@/components/categories/CategoriesManager";
+import { CnaeManager } from "@/components/categories/CnaeManager";
 
 const USAGE_DAYS = 90;
+
+const TITLE = { categories: "Categorias", accounts: "Contas", cnae: "Mapeamento CNAE" } as const;
 
 interface PageProps {
   searchParams: Promise<{ tab?: string; q?: string; kind?: string; sort?: string }>;
@@ -16,31 +20,35 @@ interface PageProps {
 export default async function CategoriesPage({ searchParams }: PageProps) {
   await requireUser();
   const params = await searchParams;
-  const showAccounts = params.tab === "accounts";
+  const tab = params.tab === "accounts" || params.tab === "cnae" ? params.tab : "categories";
   const since = daysAgoIso(USAGE_DAYS);
-  const [categories, accounts, usage] = await Promise.all([
+  const [categories, accounts, usage, cnaeMappings] = await Promise.all([
     categoryRepo.list(),
     accountRepo.list(),
     categoryRepo.usageCounts(since),
+    cnaeRepo.list(),
   ]);
   const withUsage: CategoryWithUsage[] = categories.map((c) => ({ ...c, usageCount: usage[c.id] ?? 0 }));
 
   return (
     <main className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-[22px] font-semibold tracking-tight">{showAccounts ? "Contas" : "Categorias"}</h1>
+        <h1 className="text-[22px] font-semibold tracking-tight">{TITLE[tab]}</h1>
         <div className="flex gap-1 p-1 rounded-full bg-surface border border-border">
-          <Tab href="/categories" active={!showAccounts}>
+          <Tab href="/categories" active={tab === "categories"}>
             Categorias
           </Tab>
-          <Tab href="/categories?tab=accounts" active={showAccounts}>
+          <Tab href="/categories?tab=accounts" active={tab === "accounts"}>
             Contas
+          </Tab>
+          <Tab href="/categories?tab=cnae" active={tab === "cnae"}>
+            CNAE
           </Tab>
         </div>
       </div>
-      {showAccounts ? (
-        <AccountsManager accounts={accounts} />
-      ) : (
+      {tab === "accounts" && <AccountsManager accounts={accounts} />}
+      {tab === "cnae" && <CnaeManager mappings={cnaeMappings} categories={categories} />}
+      {tab === "categories" && (
         <CategoriesManager
           categories={withUsage}
           initialFilter={parseCategoryFilter(params)}

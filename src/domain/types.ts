@@ -39,3 +39,31 @@ export interface Rule {
   categoryId: string;
   hits: number;
 }
+
+export interface ImportBatch {
+  id: string;
+  fileName: string;
+  rowCount: number;
+  importedCount: number;
+  duplicateCount: number;
+  // ISO timestamp; batches are events, not calendar days.
+  createdAt: string;
+  accountId: string;
+  accountName: string;
+}
+
+export interface CnaeMapping {
+  id: string;
+  // 2 to 4 leading digits of a CNAE code; the longest matching prefix wins.
+  cnaePrefix: string;
+  categoryId: string;
+}
+
+export interface CnpjCacheEntry {
+  cnpj: string;
+  // false = asked and the API does not know it; avoids asking again.
+  found: boolean;
+  razaoSocial: string | null;
+  cnaeCode: string | null;
+  cnaeDescription: string | null;
+}
