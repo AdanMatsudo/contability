@@ -9,6 +9,8 @@ import {
   parseDmy,
   todayIso,
   daysAgoIso,
+  isIsoDate,
+  monthLabel,
 } from "./dates";
 
 describe("monthRange", () => {
@@ -84,5 +86,20 @@ describe("daysAgoIso", () => {
     expect(daysAgoIso(0, now)).toBe("2026-09-14");
     expect(daysAgoIso(90, now)).toBe("2026-06-16");
     expect(daysAgoIso(14, now)).toBe("2026-08-31");
+  });
+});
+
+describe("monthLabel / isIsoDate", () => {
+  it("names the month in pt-BR, optionally with the year", () => {
+    expect(monthLabel("2026-09")).toBe("setembro");
+    expect(monthLabel("2026-01", true)).toBe("janeiro de 2026");
+  });
+
+  it("validates a real calendar date in ISO form", () => {
+    expect(isIsoDate("2026-09-13")).toBe(true);
+    expect(isIsoDate("2024-02-29")).toBe(true);
+    expect(isIsoDate("2026-02-30")).toBe(false);
+    expect(isIsoDate("13/09/2026")).toBe(false);
+    expect(isIsoDate("")).toBe(false);
   });
 });

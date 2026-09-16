@@ -66,3 +66,31 @@ export function daysAgoIso(days: number, now: Date = new Date(), timeZone: strin
   const shifted = new Date(Date.UTC(y, m - 1, d - days));
   return `${shifted.getUTCFullYear()}-${pad2(shifted.getUTCMonth() + 1)}-${pad2(shifted.getUTCDate())}`;
 }
+
+const MONTHS_PT = [
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
+
+export function monthLabel(ym: YearMonth, withYear = false): string {
+  const [y, m] = splitMonth(ym);
+  return withYear ? `${MONTHS_PT[m - 1]} de ${y}` : MONTHS_PT[m - 1];
+}
+
+export function isIsoDate(input: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input);
+  if (!match) return false;
+  const [, y, m, d] = match.map(Number);
+  const probe = new Date(Date.UTC(y, m - 1, d));
+  return probe.getUTCFullYear() === y && probe.getUTCMonth() === m - 1 && probe.getUTCDate() === d;
+}

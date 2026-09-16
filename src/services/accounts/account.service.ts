@@ -1,3 +1,4 @@
+import type { AccountType } from "@/domain/types";
 import { ConflictError } from "@/lib/errors";
 import { normalize } from "@/lib/text";
 
@@ -24,4 +25,10 @@ export function assertAccountRemovable(transactionCount: number): void {
   if (transactionCount > 0) {
     throw new ConflictError(`Esta conta tem ${transactionCount} lançamentos. Mova ou apague antes.`);
   }
+}
+
+// Money never arrives on a credit card; a refund there is a negative expense,
+// not an income. Decided with the owner on 2026-09-16.
+export function accountsForFlow<T extends { type: AccountType }>(accounts: T[], flow: "EXPENSE" | "INCOME"): T[] {
+  return flow === "INCOME" ? accounts.filter((a) => a.type !== "CREDIT_CARD") : accounts;
 }
