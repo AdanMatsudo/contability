@@ -1,4 +1,6 @@
 import { signIn } from "@/auth";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
+import { authErrorMessage } from "@/lib/auth-errors";
 
 interface LoginPageProps {
   searchParams: Promise<{ error?: string }>;
@@ -6,7 +8,7 @@ interface LoginPageProps {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { error } = await searchParams;
-  const denied = error === "AccessDenied";
+  const notice = authErrorMessage(error);
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#f3f3f1] text-[#111110]">
@@ -29,11 +31,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Entrar com Google
           </button>
         </form>
-        {denied && (
-          <p className="text-sm text-[#a14d13] bg-[#fff4e8] rounded-xl px-4 py-3 text-center">
-            Acesso negado. Esta conta não está autorizada.
-          </p>
-        )}
+        {notice && <ErrorNotice message={notice.message} code={notice.code} className="w-full" />}
       </div>
     </main>
   );

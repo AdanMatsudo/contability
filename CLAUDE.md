@@ -23,7 +23,7 @@ Protótipo aprovado (v3): https://claude.ai/artifact/WHACscpBcobvqDx6kNdYKG
 ## Comandos
 
 ```bash
-npm run dev          # http://localhost:3000
+npm run dev          # http://localhost:3100
 npm test             # unitários (src/**/*.test.ts), sem banco
 npm run test:int     # integração contra finance_test (TEST_DATABASE_URL)
 npm run typecheck    # tsc --noEmit (rode `npx next typegen` se faltar LayoutProps/PageProps)

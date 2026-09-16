@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { Category } from "@/domain/types";
-import { fail, ok, type ActionResult } from "@/lib/action-result";
+import { runAction, type ActionResult } from "@/lib/action-result";
 import { requireUser } from "@/lib/auth-guard";
+import { NotFoundError, ValidationError } from "@/lib/errors";
 import { categoryRepo } from "@/repositories/category.repo";
 import { parseBudget, pickColor, validateCategoryName } from "@/services/categories/category.service";
 import { categoryInputSchema, idSchema } from "./schemas/category.schema";
@@ -14,56 +15,71 @@ function revalidate() {
   revalidatePath("/");
 }
 
-export async function createCategory(input: unknown): Promise<ActionResult<Category>> {
-  await requireUser();
+function parseId(id: unknown): string {
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success) throw new ValidationError({}, "Identificador inválido.");
+  return parsed.data;
+}
+
+function parseInput(input: unknown) {
   const parsed = categoryInputSchema.safeParse(input);
-  if (!parsed.success) return fail("Dados inválidos.", z.flattenError(parsed.error).fieldErrors);
+  if (!parsed.success) throw new ValidationError(z.flattenError(parsed.error).fieldErrors);
+  return parsed.data;
+}
 
-  const existing = await categoryRepo.list();
-  const name = validateCategoryName(parsed.data.name, existing);
-  if (!name.ok) return fail(undefined, { name: [name.error] });
-  const budget = parseBudget(parsed.data.budget);
-  if (!budget.ok) return fail(undefined, { budget: [budget.error] });
+export async function createCategory(input: unknown): Promise<ActionResult<Category>> {
+  return runAction(async () => {
+    await requireUser();
+    const data = parseInput(input);
 
-  const created = await categoryRepo.create({
-    name: name.name,
-    kind: parsed.data.kind,
-    budgetCents: budget.budgetCents,
-    color: parsed.data.color ?? pickColor(existing.map((c) => c.color)),
+    const existing = await categoryRepo.list();
+    const name = validateCategoryName(data.name, existing);
+    if (!name.ok) throw new ValidationError({ name: [name.error] });
+    const budget = parseBudget(data.budget);
+    if (!budget.ok) throw new ValidationError({ budget: [budget.error] });
+
+    const created = await categoryRepo.create({
+      name: name.name,
+      kind: data.kind,
+      budgetCents: budget.budgetCents,
+      color: data.color ?? pickColor(existing.map((c) => c.color)),
+    });
+    revalidate();
+    return created;
   });
-  revalidate();
-  return ok(created);
 }
 
 export async function updateCategory(id: unknown, input: unknown): Promise<ActionResult<Category>> {
-  await requireUser();
-  const parsedId = idSchema.safeParse(id);
-  const parsed = categoryInputSchema.safeParse(input);
-  if (!parsedId.success || !parsed.success) return fail("Dados inválidos.");
+  return runAction(async () => {
+    await requireUser();
+    const categoryId = parseId(id);
+    const data = parseInput(input);
 
-  const existing = await categoryRepo.list();
-  if (!existing.some((c) => c.id === parsedId.data)) return fail("Categoria não encontrada.");
-  const name = validateCategoryName(parsed.data.name, existing, parsedId.data);
-  if (!name.ok) return fail(undefined, { name: [name.error] });
-  const budget = parseBudget(parsed.data.budget);
-  if (!budget.ok) return fail(undefined, { budget: [budget.error] });
+    const existing = await categoryRepo.list();
+    if (!existing.some((c) => c.id === categoryId)) throw new NotFoundError("Categoria não encontrada.");
+    const name = validateCategoryName(data.name, existing, categoryId);
+    if (!name.ok) throw new ValidationError({ name: [name.error] });
+    const budget = parseBudget(data.budget);
+    if (!budget.ok) throw new ValidationError({ budget: [budget.error] });
 
-  const updated = await categoryRepo.update(parsedId.data, {
-    name: name.name,
-    kind: parsed.data.kind,
-    budgetCents: budget.budgetCents,
-    ...(parsed.data.color ? { color: parsed.data.color } : {}),
+    const updated = await categoryRepo.update(categoryId, {
+      name: name.name,
+      kind: data.kind,
+      budgetCents: budget.budgetCents,
+      ...(data.color ? { color: data.color } : {}),
+    });
+    revalidate();
+    return updated;
   });
-  revalidate();
-  return ok(updated);
 }
 
 export async function deleteCategory(id: unknown): Promise<ActionResult<{ movedTransactions: number }>> {
-  await requireUser();
-  const parsedId = idSchema.safeParse(id);
-  if (!parsedId.success) return fail("Dados inválidos.");
-  const movedTransactions = await categoryRepo.countTransactions(parsedId.data);
-  await categoryRepo.remove(parsedId.data);
-  revalidate();
-  return ok({ movedTransactions });
+  return runAction(async () => {
+    await requireUser();
+    const categoryId = parseId(id);
+    const movedTransactions = await categoryRepo.countTransactions(categoryId);
+    await categoryRepo.remove(categoryId);
+    revalidate();
+    return { movedTransactions };
+  });
 }

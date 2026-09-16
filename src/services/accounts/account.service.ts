@@ -1,3 +1,4 @@
+import { ConflictError } from "@/lib/errors";
 import { normalize } from "@/lib/text";
 
 export const MAX_ACCOUNT_NAME = 40;
@@ -16,4 +17,11 @@ export function validateAccountName(
   const clash = existing.find((a) => a.id !== selfId && normalize(a.name) === key);
   if (clash) return { ok: false, error: `Já existe a conta "${clash.name}".` };
   return { ok: true, name };
+}
+
+// An account with transactions cannot be removed: the money has to live somewhere.
+export function assertAccountRemovable(transactionCount: number): void {
+  if (transactionCount > 0) {
+    throw new ConflictError(`Esta conta tem ${transactionCount} lançamentos. Mova ou apague antes.`);
+  }
 }
